@@ -91,13 +91,15 @@
 
     <div class="main-layout">
         <aside class="sidebar">
-    <div class="sidebar-mobile-header">
-        <span style="font-weight: 800; font-size: 1.4rem; color: #2563eb;">Arıyorum</span>
-        <button onclick="toggleSidebar()" style="background: none; border: none; cursor: pointer; color: #333;">
-            <span class="material-icons" style="font-size: 2rem;">close</span>
-        </button>
-    </div>
-    <input type="text" id="mobileSearchInput"
+            <div class="sidebar-mobile-header">
+                <span style="font-weight: 800; font-size: 1.4rem; color: #2563eb;">Arıyorum</span>
+                <button onclick="toggleSidebar()" style="background: none; border: none; cursor: pointer; color: #333;">
+                    <span class="material-icons" style="font-size: 2rem;">close</span>
+                </button>
+            </div>
+
+            <input type="text" id="mobileSearchInput" placeholder="Menüde ara..." onkeyup="searchData()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; display: none;">
+
             <div class="mobile-sidebar-actions" style="margin-bottom: 15px; display: none;">
                 <button id="sidebarAuthBtn" onclick="openAuthModal('login')" class="btn-primary" style="margin-bottom: 10px; background:#333;">Giriş Yap</button>
                 <button onclick="openNewRequestModal()" class="btn-primary">➕ Ücretsiz İlan Ver</button>
@@ -116,6 +118,9 @@
                 </div>
                 <div onclick="showMyOffers()" class="menu-item">
                     <span class="material-icons">local_offer</span> Tekliflerim
+                </div>
+                <div onclick="showIncomingOffers()" class="menu-item" id="incomingOffersMenuItem">
+                    <span class="material-icons">move_to_inbox</span> Gelen Teklifler
                 </div>
                 <div onclick="toggleAIChat()" class="menu-item">
                     <span class="material-icons">auto_awesome</span> Asistana Sor (AI)
@@ -166,40 +171,6 @@
                 <button onclick="fetchRequests()" class="btn-primary" style="width:100%; margin-top:5px; padding:8px; font-size:0.9rem;">Uygula</button>
             </div>
         </aside>
-
-        <div class="feed-wrapper" style="flex: 1; display: flex; flex-direction: column;">
-            <main id="feedContainer" class="feed-area" style="width: 100%;"></main>
-            <div id="loadMoreContainer" style="text-align:center; margin: 30px 0; display:none;">
-                <button onclick="loadMore()" class="btn-primary" style="width: auto; padding: 12px 40px; border-radius: 30px; background: white; color: #2563eb; border: 2px solid #2563eb; font-weight: 800; transition: all 0.2s; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.1);">👇 Daha Fazla Göster</button>
-            </div>
-        </div>
-        <aside class="right-sidebar">
-            <div class="right-widget">
-                <h4 style="display:flex; align-items:center; gap:5px;">
-                    <span class="material-icons" style="color:#f59e0b;">local_fire_department</span> 
-                    Günün Fırsatları
-                </h4>
-                <div id="rightSideSuggestions">
-                    <div class="skeleton" style="height:50px; margin-bottom:10px;"></div>
-                    <div class="skeleton" style="height:50px; margin-bottom:10px;"></div>
-                    <div class="skeleton" style="height:50px;"></div>
-                </div>
-            </div>
-
-            <div class="right-widget" style="margin-top:20px; background: linear-gradient(135deg, #2563eb, #1e40af); color:white;">
-                <h4 style="color:white; margin-bottom:10px;">📢 İlanın Var mı?</h4>
-                <p style="font-size:0.85rem; opacity:0.9; margin-bottom:15px;">Hemen ücretsiz ilan ver, binlerce kişiye ulaş.</p>
-                <button onclick="openNewRequestModal()" style="width:100%; padding:8px; border:none; border-radius:6px; background:white; color:#2563eb; font-weight:bold; cursor:pointer;">İlan Ver</button>
-            </div>
-            
-            <div style="margin-top:20px; text-align:center; font-size:0.75rem; color:#999;">
-                &copy; 2025 Arıyorum App<br>
-                <a href="#" style="color:#999; text-decoration:none;">Gizlilik</a> • <a href="#" style="color:#999; text-decoration:none;">Şartlar</a>
-            </div>
-        <div id="toastBox"></div>
-        </aside>
-    </div> 
-    
 
     <!-- MODALLER (DÜZELTİLDİ) -->
     
