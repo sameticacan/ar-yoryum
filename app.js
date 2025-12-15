@@ -629,6 +629,13 @@ async function postRequest() {
 
         showToast("İlan başarıyla yayınlandı! 🎉");
         closeModal('buyerModal');
+        // ... postRequest fonksiyonunun içi ...
+
+// Modal kapanırken resmi temizle:
+document.getElementById('reqImagePreview').style.display = 'none';
+document.getElementById('uploadPlaceholder').style.display = 'block';
+document.getElementById('uploadPreviewBox').style.border = "2px dashed #ccc";
+document.getElementById('reqFile').value = ""; // Inputu da temizle
         fetchRequests(); // Listeyi yenile
 
     } catch (error) {
@@ -1128,15 +1135,16 @@ function injectIncomingOffersMenu() {
 
     const div = document.createElement('div');
     div.id = 'incomingOffersMenuItem';
-    div.className = 'menu-item';
-    div.style.cssText = "cursor:pointer; display:flex; align-items:center; gap:6px; padding:5px 0; font-weight:bold; color:#16a34a;";
+    div.className = 'menu-item'; // CSS'teki standart sınıfı kullanacak
+    // Inline stilleri SİLDİK, artık diğerleriyle birebir aynı olacak.
+    
     div.onclick = () => showIncomingOffers();
     div.innerHTML = `
-        <span class="material-icons" style="font-size:1.2rem;">move_to_inbox</span>
+        <span class="material-icons">move_to_inbox</span>
         Gelen Teklifler
     `;
 
-    // Menüdeki mevcut itemleri al (Favorilerim / İlanlarım / Mesajlarım / Tekliflerim / Asistan)
+    // Menüdeki mevcut itemleri al
     const items = menuList.querySelectorAll('.menu-item');
 
     // "Tekliflerim" item'ini bul
@@ -1151,7 +1159,7 @@ function injectIncomingOffersMenu() {
         // Tekliflerim'in hemen altına ekle
         insertAfter.insertAdjacentElement('afterend', div);
     } else {
-        // Her ihtimale karşı: hiç bulamazsa, kategorilerden önce en üste at
+        // Bulamazsa başa ekle
         const firstChild = menuList.firstElementChild;
         if (firstChild) {
             menuList.insertBefore(div, firstChild);
@@ -2397,10 +2405,7 @@ async function submitOffer() {
     }
 }
 
-// 3. İLAN DURUMU DEĞİŞTİRME (SATILDI / AKTİF)
-// ------------------------------------------------------------
 async function toggleSoldStatus(id, status) {
-    // status: true (satıldı yap), false (tekrar aç)
     if(!confirm(status ? "Bu ürünü 'BULUNDU' olarak işaretlemek istiyor musun? Artık teklif gelmeyecek." : "İlanı tekrar yayına almak istiyor musun?")) return;
 
     try {
@@ -2410,15 +2415,21 @@ async function toggleSoldStatus(id, status) {
 
         if (error) throw error;
 
-        showToast(status ? "Ürün bulundu olarak işaretlendi! 🎉" : "İlan tekrar yayına alındı.");
-        // Eğer satıldı işaretlendiyse, satıcının satış sayısını artır
-    if (status === true) {
-        const { data: prof } = await client.from('profiles').select('sales_count').eq('id', currentUser.id).single();
-        const newCount = (prof?.sales_count || 0) + 1;
-        await client.from('profiles').update({ sales_count: newCount }).eq('id', currentUser.id);
-}
+        // EĞER SATILDI İŞARETLENDİYSE -> KUTLAMA YAP! 🎉
+        if (status === true) {
+            fireConfetti(); // <--- İŞTE SİHİR BURADA!
+            showToast("Tebrikler! Ürün bulundu! 🎉");
+            
+            // Satış sayısını artır
+            const { data: prof } = await client.from('profiles').select('sales_count').eq('id', currentUser.id).single();
+            const newCount = (prof?.sales_count || 0) + 1;
+            await client.from('profiles').update({ sales_count: newCount }).eq('id', currentUser.id);
+        } else {
+            showToast("İlan tekrar yayına alındı.");
+        }
+
         closeModal('sellerModal');
-        fetchRequests(); // Listeyi yenile
+        fetchRequests(); 
 
     } catch (e) {
         console.error("Durum güncelleme hatası:", e);
@@ -3088,75 +3099,390 @@ function openHeatmap() {
 // ==========================================
 // 🤖 5. ÖZELLİK: AKILLI FİYAT TAHMİNİ
 // ==========================================
+// ==========================================
+// 🤖 5. ÖZELLİK: AKILLI FİYAT TAHMİNİ (MODERN & ANİMASYONLU)
+// ==========================================
 async function predictPrice() {
     const titleInput = document.getElementById('reqTitle');
     const budgetInput = document.getElementById('reqBudget');
     const title = titleInput.value.trim();
 
+    // 1. Validasyon: Başlık çok kısaysa uyarı ver
     if (title.length < 3) {
-        return showToast("Lütfen önce geçerli bir ürün başlığı gir.", "error");
+        return showToast("Önce ürünün adını yazmalısın (Örn: iPhone 11)", "error");
     }
 
     const btn = document.getElementById('aiPriceBtn');
     const originalContent = btn.innerHTML;
     
-    // Yükleniyor modu
-    btn.innerHTML = `<span class="material-icons spin-anim" style="font-size:1rem;">sync</span> Analiz ediliyor...`;
+    // UI: Butonu "Yükleniyor" moduna al
+    btn.innerHTML = `<span class="material-icons spin-anim" style="font-size:1rem;">sync</span>`;
     btn.disabled = true;
+    budgetInput.placeholder = "Yapay zeka hesaplıyor...";
 
     try {
-        // 1. Site İçi Veri Analizi (Gerçekçi veri varsa onu kullan)
-        const similarListings = allData.filter(i => 
-            i.title.toLowerCase().includes(title.toLowerCase()) && i.budget > 0
-        );
+        // A) Sitedeki Benzer İlanları Tarama (Yerel Veri)
+        // Başlıktaki kelimeleri içeren diğer ilanları bul
+        const keywords = title.toLowerCase().split(' ');
+        const similarListings = allData.filter(i => {
+            const itemTitle = i.title.toLowerCase();
+            return keywords.every(k => itemTitle.includes(k)) && i.budget > 0;
+        });
         
         let localAvg = 0;
         if (similarListings.length > 0) {
             const total = similarListings.reduce((sum, item) => sum + item.budget, 0);
             localAvg = Math.floor(total / similarListings.length);
+            console.log(`📊 Site içi veri: ${similarListings.length} ilan bulundu. Ort: ${localAvg}`);
         }
 
-        // 2. Gemini AI Analizi (Piyasa Bilgisi)
-        const prompt = `Türkiye ikinci el piyasasında "${title}" için ortalama fiyat aralığı nedir? 
-        Bana sadece rakam ver. Örnek format: "10000". Eğer aralık varsa ortalamasını ver. 
-        Asla metin yazma, sadece saf sayı döndür.`;
+        // B) Gemini AI Analizi (Piyasa Uzmanı)
+        // Prompt'u "Sadece Sayı Ver" şeklinde ayarlıyoruz
+        const prompt = `Türkiye ikinci el pazarında "${title}" adlı ürünün temiz kullanılmış ortalama fiyatı kaç TL'dir? 
+        Cevap olarak sadece tek bir sayı ver. Aralık verme, yazı yazma. 
+        Örnek Cevap: 15000. 
+        Eğer ürün çok belirsizse (örn: "masa") tahmini bir ortalama sayı ver.`;
 
-        // Mevcut app.js içindeki fonksiyonu kullanıyoruz
-        const aiResponse = await tryFetchGeminiModel("gemini-1.5-flash", prompt);
+        // 1.5-flash modeli en hızlısıdır, direkt onu kullanıyoruz
+        const aiResponse = await tryFetchGeminiModel("gemini-2.5-flash", prompt);
         
-        // Sayıyı temizle (Sadece rakamları al)
-        const aiPrice = parseInt(aiResponse.replace(/[^0-9]/g, '')) || 0;
+        // Temizlik: Gelen cevaptan sadece rakamları al
+        let aiPrice = parseInt(aiResponse.replace(/[^0-9]/g, '')) || 0;
 
-        // Karar Mekanizması: Site verisi varsa ortalamasını al, yoksa AI'ya güven
+        // Fiyat çok uçuksa (Örn: 10 TL veya 10 Milyon TL) AI hatasıdır, yoksay
+        if (aiPrice < 50 || aiPrice > 50000000) aiPrice = 0;
+
+        // C) Fiyat Harmanlama (Hybrid Algoritma)
         let finalPrice = 0;
         let sourceMsg = "";
 
         if (localAvg > 0 && aiPrice > 0) {
-            finalPrice = Math.floor((localAvg + aiPrice) / 2); // İkisinin ortalaması
-            sourceMsg = "Site verileri ve yapay zeka harmanlandı.";
+            // Hem site verisi hem AI var -> Ortalamasını al (En güvenlisi)
+            finalPrice = Math.floor((localAvg + aiPrice) / 2);
+            sourceMsg = "Site verileri ve AI analizi harmanlandı.";
         } else if (aiPrice > 0) {
             finalPrice = aiPrice;
-            sourceMsg = "Yapay zeka piyasa analizi yaptı.";
+            sourceMsg = "Güncel piyasa verilerine göre tahmin edildi.";
         } else if (localAvg > 0) {
             finalPrice = localAvg;
-            sourceMsg = "Benzer ilanlar baz alındı.";
+            sourceMsg = "Sitedeki benzer ilanlar baz alındı.";
         } else {
-            throw new Error("Fiyat tahmin edilemedi.");
+            // Hiçbiri bulamadıysa varsayılan bir değer (Çok nadir olur)
+            throw new Error("Fiyat belirlenemedi");
         }
 
-        // Sonucu Kullanıcıya Sun
-        if(confirm(`🤖 Tahmini Piyasa Değeri: ${finalPrice.toLocaleString()} TL\n\nℹ️ ${sourceMsg}\n\nBu fiyatı bütçene uygulamak ister misin?`)) {
-            budgetInput.value = finalPrice;
-            // Dikkat çeksin diye parlat
-            budgetInput.style.backgroundColor = "#dcfce7";
-            setTimeout(() => budgetInput.style.backgroundColor = "#fff", 1000);
-        }
+        // D) Sonucu Uygula (Slot Makinesi Animasyonu ile) 🎰
+        animateValue(budgetInput, 0, finalPrice, 1000); // 0'dan fiyata doğru 1 saniyede say
+        
+        // Inputu parlat (Yeşil yapıp söndür)
+        budgetInput.style.backgroundColor = "#dcfce7"; // Açık yeşil
+        budgetInput.style.transition = "background-color 1.5s";
+        setTimeout(() => budgetInput.style.backgroundColor = "#f9fafb", 2000);
+
+        // Kullanıcıya bilgi ver
+        showToast(`💡 Tavsiye: ${finalPrice.toLocaleString()} TL (${sourceMsg})`, "success");
 
     } catch (e) {
-        console.error("Fiyat tahmini hatası:", e);
-        showToast("Fiyat tahmini şu an yapılamıyor.", "error");
+        console.error("Fiyat hatası:", e);
+        showToast("Fiyat tahmini için ürün adını biraz daha detaylandır.", "error");
     } finally {
+        // Butonu eski haline getir
         btn.innerHTML = originalContent;
         btn.disabled = false;
+        budgetInput.placeholder = "Bütçen (TL)";
+    }
+}
+
+// YARDIMCI: Sayı sayma animasyonu (0...100...500...1000)
+function animateValue(obj, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // Sayıyı güncelle
+        const value = Math.floor(progress * (end - start) + start);
+        obj.value = value;
+        
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+// ==========================================
+// 🧠 SÜRÜKLENEBİLİR PENCERE FONKSİYONU (DRAG AND DROP)
+// ==========================================
+
+function makeElementDraggable(element, dragHandle) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    
+    // Eğer dragHandle (Sürükleme tutacağı, yani başlık) tanımlanmışsa,
+    // tutucuya basınca sürüklemeyi başlat. Yoksa elementin tamamını kullan.
+    const handle = dragHandle || element;
+
+    handle.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        
+        // Başlangıç fare (mouse) konumunu al
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        
+        // Tarayıcıdaki mouse hareketini ve bırakma olaylarını dinle
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+
+        // Dokunmatik cihazlar için de ayarla (mobil uyumluluk)
+        handle.ontouchstart = dragTouchStart;
+        handle.ontouchmove = elementDragTouch;
+        handle.ontouchend = closeDragElement;
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        
+        // Yeni pozisyonu hesapla
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        
+        // Elementin yeni konumunu ayarla
+        let newTop = element.offsetTop - pos2;
+        let newLeft = element.offsetLeft - pos1;
+
+        // Ekran sınırları dışına çıkmasını engelle
+        if (newTop < 0) newTop = 0;
+        if (newLeft < 0) newLeft = 0;
+        if (newTop > window.innerHeight - element.offsetHeight) newTop = window.innerHeight - element.offsetHeight;
+        if (newLeft > window.innerWidth - element.offsetWidth) newLeft = window.innerWidth - element.offsetWidth;
+        
+        // Konumu uygula
+        element.style.top = newTop + "px";
+        element.style.left = newLeft + "px";
+        
+        // Mutlak konumlandırma ayarını yap (Bir kereye mahsus)
+        element.style.position = "fixed";
+        element.style.right = "auto";
+        element.style.bottom = "auto";
+    }
+
+    // Mobil Sürükleme Başlangıcı
+    function dragTouchStart(e) {
+        if (e.touches.length === 1) {
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+            handle.onmousedown = null; // Mouse olaylarını devre dışı bırak
+        }
+    }
+
+    // Mobil Sürükleme Hareketi
+    function elementDragTouch(e) {
+        if (e.touches.length === 1) {
+            pos1 = pos3 - e.touches[0].clientX;
+            pos2 = pos4 - e.touches[0].clientY;
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+            
+            // Mouse sürüklemesi ile aynı mantık
+            let newTop = element.offsetTop - pos2;
+            let newLeft = element.offsetLeft - pos1;
+
+            if (newTop < 0) newTop = 0;
+            if (newLeft < 0) newLeft = 0;
+            if (newTop > window.innerHeight - element.offsetHeight) newTop = window.innerHeight - element.offsetHeight;
+            if (newLeft > window.innerWidth - element.offsetWidth) newLeft = window.innerWidth - element.offsetWidth;
+
+            element.style.top = newTop + "px";
+            element.style.left = newLeft + "px";
+            element.style.position = "fixed";
+            element.style.right = "auto";
+            element.style.bottom = "auto";
+        }
+    }
+
+    function closeDragElement() {
+        // Sürükleme olaylarını temizle
+        document.onmouseup = null;
+        document.onmousemove = null;
+        handle.ontouchstart = null;
+        handle.ontouchmove = null;
+        handle.ontouchend = null;
+    }
+}
+
+// ==========================================
+// 🚀 UYGULAMAYA ENTEGRASYON (DOM READY)
+// ==========================================
+// Sayfa yüklendikten sonra sürükleme özelliğini ekle
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. AI Chat Box
+    const aiBox = document.getElementById('aiChatBox');
+    const aiHeader = document.querySelector('#aiChatBox .ai-chat-header');
+    if (aiBox && aiHeader) {
+        makeElementDraggable(aiBox, aiHeader);
+    }
+    
+    // 2. Sosyal Chat Box (Opsiyonel)
+    const socialBox = document.getElementById('socialChatBox');
+    const socialHeader = document.querySelector('#socialChatBox .social-chat-header');
+    if (socialBox && socialHeader) {
+         makeElementDraggable(socialBox, socialHeader);
+    }
+    
+    // ... Diğer DOMContentLoaded kodların buradaysa silme ...
+});
+// ==========================================
+// 📜 SONSUZ KAYDIRMA (INFINITE SCROLL)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    // Gözlemci (Observer) Tanımla
+    const observerOptions = {
+        root: null, // Tarayıcı penceresi
+        rootMargin: '100px', // En alta 100px kala yüklemeye başla (kullanıcı fark etmesin)
+        threshold: 0.1
+    };
+
+    const scrollObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            // Eğer "Daha Fazla" butonu/alanı göründüyse VE son sayfa değilse
+            if (entry.isIntersecting && !isLastPage) {
+                const btn = document.getElementById('loadMoreContainer');
+                // Buton görünüyorsa (display:none değilse) tetikle
+                if(btn && btn.style.display !== 'none') {
+                    console.log("📜 Sayfa sonu algılandı, yeni ilanlar yükleniyor...");
+                    loadMore();
+                }
+            }
+        });
+    }, observerOptions);
+
+    // Gözlemlenecek elemanı seç (Daha fazla butonu kutusu)
+    const target = document.getElementById('loadMoreContainer');
+    if (target) scrollObserver.observe(target);
+});
+// ==========================================
+// 🎉 KUTLAMA EFEKTİ (CONFETTI)
+// ==========================================
+function fireConfetti() {
+    // Kütüphane yüklenmemişse hata vermesin
+    if (typeof confetti === 'undefined') return;
+
+    var duration = 3 * 1000; // 3 saniye sürsün
+    var animationEnd = Date.now() + duration;
+    var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    var interval = setInterval(function() {
+      var timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      var particleCount = 50 * (timeLeft / duration);
+      
+      // Rastgele noktalardan fırlat
+      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+}
+// ==========================================
+// 🧠 AKILLI KATEGORİ SEÇİMİ (AUTO-CATEGORY)
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const titleInput = document.getElementById('reqTitle');
+    const categorySelect = document.getElementById('reqCategory');
+
+    if (titleInput && categorySelect) {
+        // Kullanıcı yazarken değil, yazıp bitirdiğinde (blur) veya
+        // yazarken (input) çalışabilir. 'input' anlık tepki verir, daha havalıdır.
+        titleInput.addEventListener('input', function() {
+            const text = this.value.toLowerCase();
+            
+            // 1. Zaten bir kategori seçiliyse (ve 'Diğer' değilse) elleme
+            // (Kullanıcı kendi düzelttiyse bozmayalım)
+            if (categorySelect.value !== 'Diğer' && categorySelect.value !== '') return;
+
+            // 2. Anahtar Kelime Tarayıcısı
+            let detectedCat = 'Diğer';
+
+            // TELEFON KELİMELERİ
+            if (text.match(/iphone|samsung|xiaomi|redmi|huawei|oppo|android|ios|telefon|mobil|s20|s21|s22|s23|s24|note|pro max|plus/)) {
+                detectedCat = 'Telefon';
+            }
+            // VASITA KELİMELERİ
+            else if (text.match(/araba|oto|araç|bmw|mercedes|fiat|egea|clio|honda|toyota|motor|motosiklet|bisiklet|scooter|peugeot|volkswagen|audi|ford/)) {
+                detectedCat = 'Vasıta';
+            }
+            // EMLAK KELİMELERİ
+            else if (text.match(/ev|daire|kiralık|satılık|1\+1|2\+1|3\+1|4\+1|residance|rezidans|kat|bina|arsa|tarla|dükkan|ofis/)) {
+                detectedCat = 'Emlak';
+            }
+            // GİYİM KELİMELERİ
+            else if (text.match(/giyim|kıyafet|mont|kaban|ceket|pantolon|gömlek|t-shirt|tişört|ayakkabı|bot|çizme|nike|adidas|puma|zara|lcw|elbise/)) {
+                detectedCat = 'Giyim';
+            }
+
+            // 3. Kategori Bulunduysa Seç ve Efekt Ver
+            if (detectedCat !== 'Diğer') {
+                categorySelect.value = detectedCat;
+                
+                // Kullanıcıya hissettir (Yeşil yanıp sönsün)
+                categorySelect.style.backgroundColor = "#dcfce7"; // Açık yeşil
+                categorySelect.style.transition = "background 0.5s";
+                
+                setTimeout(() => {
+                    categorySelect.style.backgroundColor = ""; // Eski haline dön
+                }, 1000);
+                
+                console.log(`🤖 Otomatik Kategori: ${detectedCat}`);
+            }
+        });
+    }
+});
+// ==========================================
+// 📸 İLAN RESMİ ÖNİZLEME (PREVIEW)
+// ==========================================
+function previewRequestImage(input) {
+    const previewBox = document.getElementById('reqImagePreview');
+    const placeholder = document.getElementById('uploadPlaceholder');
+    const badge = document.getElementById('changeImgBadge');
+    const box = document.getElementById('uploadPreviewBox');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            // Resmi göster
+            previewBox.src = e.target.result;
+            previewBox.style.display = 'block';
+            
+            // İkonları gizle
+            placeholder.style.display = 'none';
+            badge.style.display = 'block';
+            
+            // Kutunun kenarlığını düz yap (dolu olduğu belli olsun)
+            box.style.border = "2px solid #2563eb";
+            box.style.background = "#fff";
+        };
+
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        // İptal ederse eski haline döndür
+        previewBox.style.display = 'none';
+        previewBox.src = "";
+        placeholder.style.display = 'block';
+        badge.style.display = 'none';
+        box.style.border = "2px dashed #ccc";
+        box.style.background = "#f3f4f6";
     }
 }

@@ -18,7 +18,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1150/1150612.png">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-    <!-- Markdown kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
    
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -81,7 +81,7 @@
             </div>
         </div>
         <div class="ticker-wrap">
-    <div class="ticker-label">CANLI ⚡</div>
+    <div class="ticker-label">CANLI </div>
     <div class="ticker-track" id="liveTickerContent">
         <div class="ticker-item">Piyasa verileri yükleniyor...</div>
     </div>
@@ -98,23 +98,45 @@
                 <button onclick="openNewRequestModal()" class="btn-primary">➕ Ücretsiz İlan Ver</button>
             </div>
 
-            <h4>Menü</h4>
+            <h5>Menü</h5>
             <div class="category-list">
-                <div onclick="showFavorites()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#d9534f; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">star</span> Favorilerim</div>
-                <div onclick="showMyListings()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#2c6ec9; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">person</span> İlanlarım</div>
-                <div onclick="openMyMessages()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#007bff; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">forum</span> Mesajlarım</div>
-                <div onclick="showMyOffers()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#6f42c1; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">local_offer</span> Tekliflerim</div>
-                <div onclick="toggleAIChat()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#8e44ad; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">auto_awesome</span> Asistana Sor (AI)</div>
-                <div onclick="openHeatmap()" class="menu-item" style="color:#e11d48; font-weight:bold;">
-    <span class="material-icons" style="color:#e11d48;">map</span> Piyasa Haritası
-</div>
-                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <div onclick="showFavorites()" class="menu-item">
+                    <span class="material-icons">star</span> Favorilerim
+                </div>
+                <div onclick="showMyListings()" class="menu-item">
+                    <span class="material-icons">person</span> İlanlarım
+                </div>
+                <div onclick="openMyMessages()" class="menu-item">
+                    <span class="material-icons">forum</span> Mesajlarım
+                </div>
+                <div onclick="showMyOffers()" class="menu-item">
+                    <span class="material-icons">local_offer</span> Tekliflerim
+                </div>
+                <div onclick="toggleAIChat()" class="menu-item">
+                    <span class="material-icons">auto_awesome</span> Asistana Sor (AI)
+                </div>
+                <div onclick="openHeatmap()" class="menu-item">
+                    <span class="material-icons">map</span> Piyasa Haritası
+                </div>
+                
+                <hr class="menu-divider">
+
                 <h4>Kategoriler</h4>
-                <div onclick="filterCategory('Tümü')" style="cursor:pointer; padding:3px 0;">📂 Tümü</div>
-                <div onclick="filterCategory('Telefon')" style="cursor:pointer; padding:3px 0;">📱 Telefon & Elektronik</div>
-                <div onclick="filterCategory('Vasıta')" style="cursor:pointer; padding:3px 0;">🚗 Vasıta</div>
-                <div onclick="filterCategory('Emlak')" style="cursor:pointer; padding:3px 0;">🏠 Emlak</div>
-                <div onclick="filterCategory('Giyim')" style="cursor:pointer; padding:3px 0;">👕 Giyim & Moda</div>
+                <div onclick="filterCategory('Tümü')" class="menu-item">
+                    <span class="material-icons">dashboard</span> Tümü
+                </div>
+                <div onclick="filterCategory('Telefon')" class="menu-item">
+                    <span class="material-icons">smartphone</span> Telefon
+                </div>
+                <div onclick="filterCategory('Vasıta')" class="menu-item">
+                    <span class="material-icons">directions_car</span> Vasıta
+                </div>
+                <div onclick="filterCategory('Emlak')" class="menu-item">
+                    <span class="material-icons">home</span> Emlak
+                </div>
+                <div onclick="filterCategory('Giyim')" class="menu-item">
+                    <span class="material-icons">checkroom</span> Giyim
+                </div>
             </div>
             
             <br>
@@ -201,10 +223,24 @@
         <div class="modal-card">
             <div class="modal-header"><h3>🔍 İlan Oluştur / Düzenle</h3></div>
             <div style="background:#f9f9f9; padding:10px; border:1px dashed #ccc; margin-bottom:10px; text-align:center; border-radius:4px;">
-                <label for="reqFile" style="cursor:pointer; display:block;">📸 Örnek Fotoğraf Ekle</label>
-                <input type="file" id="reqFile" accept="image/*" multiple style="display:none;" onchange="showToast('Fotoğraf hazır! 📸')">
-                <div id="reqProgressFill" class="progress-fill"></div>
-            </div>
+                <div style="text-align:center; margin-bottom:15px;">
+    <div id="uploadPreviewBox" onclick="document.getElementById('reqFile').click()" 
+         style="width:100%; height:200px; background:#f3f4f6; border:2px dashed #ccc; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; position:relative; transition:all 0.2s;">
+        
+        <div id="uploadPlaceholder" style="pointer-events:none;">
+            <span class="material-icons" style="font-size:3rem; color:#9ca3af; display:block; margin-bottom:5px;">add_a_photo</span>
+            <span style="font-size:0.9rem; color:#6b7280; font-weight:600;">Fotoğraf Seçmek İçin Dokun</span>
+        </div>
+
+        <img id="reqImagePreview" src="" style="width:100%; height:100%; object-fit:contain; display:none;">
+        
+        <div id="changeImgBadge" style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.6); color:white; padding:5px 10px; border-radius:20px; font-size:0.8rem; display:none;">
+            <span class="material-icons" style="font-size:14px; vertical-align:middle;">edit</span> Değiştir
+        </div>
+    </div>
+
+    <input type="file" id="reqFile" accept="image/*" style="display:none;" onchange="previewRequestImage(this)">
+</div>
             <input type="text" id="reqTitle" placeholder="Başlık">
             <div style="display:flex; justify-content:flex-end; margin-bottom:5px;">
     <button id="aiPriceBtn" onclick="predictPrice()" style="background:linear-gradient(135deg, #8e44ad, #3498db); color:white; border:none; padding:5px 12px; border-radius:15px; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
@@ -219,7 +255,7 @@
             <button onclick="closeModal('buyerModal')" style="margin-top:10px; background:none; border:none; width:100%; cursor:pointer;">Vazgeç</button>
         </div>
     </div>
-            3. PROFİ
+          
     <!-- 3. PROFİL MODALI -->
     <div id="profileModal" class="modal-overlay">
         <div class="modal-card profile-dashboard-card">

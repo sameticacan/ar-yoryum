@@ -2553,3 +2553,82 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(142, 68, 173, 0.3) !important;
 }
+/* =========================================
+   🎨 NİZAMİ MENÜ TASARIMI (STANDARTLAŞTIRMA)
+   ========================================= */
+
+/* Menü Kapsayıcısı */
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Butonlar arası eşit boşluk */
+}
+
+/* Tekil Menü Öğesi (Hepsi Aynı Boyut) */
+.menu-item {
+    display: flex; /* İkon ve yazıyı hizala */
+    align-items: center;
+    gap: 12px; /* İkon ile yazı arası boşluk */
+    padding: 12px 15px; /* Buton şişmanlığı */
+    border-radius: 12px; /* Köşeleri yuvarla */
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main); /* Standart Koyu Renk */
+    background-color: transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent; /* Sıçrama yapmasın diye */
+}
+
+/* İkon Rengi (Sadece Mavi) */
+.menu-item .material-icons {
+    font-size: 1.4rem;
+    color: var(--primary); /* #2563eb Mavisi */
+    opacity: 0.9;
+    transition: transform 0.2s;
+}
+
+/* Hover (Üzerine Gelince) Efekti */
+.menu-item:hover {
+    background-color: #eff6ff; /* Çok açık mavi zemin */
+    color: var(--primary); /* Yazı maviye dönsün */
+    padding-left: 20px; /* Hafif sağa kayma efekti */
+}
+
+.menu-item:hover .material-icons {
+    transform: scale(1.1); /* İkon hafif büyüsün */
+}
+
+/* Araya attığımız çizgi */
+.menu-divider {
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+    margin: 15px 0;
+}
+
+/* Dark Mode Uyumu */
+body.dark-mode .menu-item {
+    color: #e4e4e7;
+}
+body.dark-mode .menu-item:hover {
+    background-color: #1e293b;
+    color: #60a5fa;
+}
+body.dark-mode .menu-item .material-icons {
+    color: #60a5fa;
+}
+/* Sonsuz Kaydırma Alanı */
+#loadMoreContainer {
+    padding: 20px;
+    text-align: center;
+    opacity: 0.7; /* Biraz silik dursun */
+}
+
+/* Yükleniyor animasyonu ekleyelim */
+#loadMoreContainer button:disabled {
+    background: transparent;
+    color: #666;
+    border: none;
+    box-shadow: none;
+    cursor: default;
+}
