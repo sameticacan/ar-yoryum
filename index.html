@@ -91,8 +91,13 @@
 
     <div class="main-layout">
         <aside class="sidebar">
-            <input type="text" id="mobileSearchInput" placeholder="Kelime ile ara..." onkeyup="searchData()" style="padding:10px; border:1px solid #ccc; width:100%; border-radius:4px; margin-bottom:15px; box-sizing:border-box; display:none;">
-
+    <div class="sidebar-mobile-header">
+        <span style="font-weight: 800; font-size: 1.4rem; color: #2563eb;">Arıyorum</span>
+        <button onclick="toggleSidebar()" style="background: none; border: none; cursor: pointer; color: #333;">
+            <span class="material-icons" style="font-size: 2rem;">close</span>
+        </button>
+    </div>
+    <input type="text" id="mobileSearchInput"
             <div class="mobile-sidebar-actions" style="margin-bottom: 15px; display: none;">
                 <button id="sidebarAuthBtn" onclick="openAuthModal('login')" class="btn-primary" style="margin-bottom: 10px; background:#333;">Giriş Yap</button>
                 <button onclick="openNewRequestModal()" class="btn-primary">➕ Ücretsiz İlan Ver</button>

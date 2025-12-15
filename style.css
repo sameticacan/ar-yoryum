@@ -2,7 +2,9 @@
    1. GENEL AYARLAR & RESET
    ========================================= */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
-
+html, body {
+    overscroll-behavior-y: contain; /* Tarayıcının kendi yenilemesini engeller */
+}
 :root {
     /* AYDINLIK MOD */
     --bg-body: #f0f2f5;
@@ -643,7 +645,7 @@ body.dark-mode .auth-text-btn:hover { color: #60a5fa; }
 .bottom-nav { display: none; }
 @media (max-width: 768px) {
     .fab { display: none !important; }
-    .bottom-nav { display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; height: 65px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 4000; border-top: 1px solid #eee; padding-bottom: 5px; }
+    .bottom-nav { display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; height: 65px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 4000; border-top: 1px solid #eee; padding-bottom: 5px; padding-bottom: env(safe-area-inset-bottom); height: calc(65px + env(safe-area-inset-bottom)); }
     .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #999; font-size: 0.75rem; flex: 1; transition: color 0.2s; }
     .nav-item .material-icons { font-size: 1.6rem; margin-bottom: 2px; }
     .nav-item.active { color: var(--primary); font-weight: 600; }
@@ -2631,4 +2633,65 @@ body.dark-mode .menu-item .material-icons {
     border: none;
     box-shadow: none;
     cursor: default;
+}
+/* =========================================
+   📱 MOBİL İNCE AYARLAR (ZOOM FİX)
+   ========================================= */
+@media (max-width: 768px) {
+    /* iPhone'da inputa tıklayınca ekranın zoom yapmasını engeller */
+    input, select, textarea {
+        font-size: 16px !important; 
+    }
+
+    /* Tıklanabilir alanları parmak ucuna göre büyüt */
+    .menu-item, .nav-item, .icon-btn {
+        cursor: default; /* Mobilde el işareti çıkmasına gerek yok */
+    }
+}
+@media (max-width: 768px) {
+    /* Chat kutusunu klavye açılınca düzgün hizala */
+    .social-chat-box, .ai-chat-box {
+        bottom: 0 !important; /* Alt menüyü ezsin, en alta yapışsın */
+        height: 100% !important; /* Tam ekran olsun */
+        border-radius: 0 !important; /* Köşeleri düzle */
+        z-index: 5000 !important; /* Alt menüden (4000) daha üstte olsun */
+    }
+
+    /* Chat içindeki mesaj alanını klavye payı kadar esnet */
+    .social-chat-body, .ai-chat-body {
+        padding-bottom: 80px; /* En alttaki mesajın görünmesi için */
+    }
+    
+    /* Chat kapatma butonunu daha belirgin yap */
+    .social-chat-header span, .ai-chat-header span {
+        padding: 10px; /* Dokunma alanı artsın */
+    }
+}
+* {
+    -webkit-tap-highlight-color: transparent; /* Mavi tıklama kutusunu kaldır */
+}
+/* =========================================
+   📱 MOBİL MENÜ KAPATMA BUTONU
+   ========================================= */
+
+/* Varsayılan olarak gizle (Masaüstünde görünmesin) */
+.sidebar-mobile-header {
+    display: none;
+}
+
+/* Sadece Mobilde Göster */
+@media (max-width: 768px) {
+    .sidebar-mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 15px 5px 15px; /* Üstten biraz boşluk */
+        margin-bottom: 10px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* Menünün kendi üst boşluğunu sıfırla ki header tam otursun */
+    .sidebar {
+        padding-top: 0 !important; 
+    }
 }
