@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta property="og:title" content="ARIYORUM - İlan Ver Teklif Al">
+    <meta property="og:description" content="İhtiyacın olanı gir, satıcılar sana teklif versin. İkinci elin en hızlı hali!">
+    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1150/1150612.png"> 
+    <meta property="og:url" content="https://ariyorum-app.netlify.app">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#2563eb">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arıyorum</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1150/1150612.png">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <!-- Markdown kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+   
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+</head>
+</head>
+<body>
+    <div id="pullToRefresh" class="ptr-box">
+        <div class="ptr-icon"><span class="material-icons">refresh</span></div>
+    </div>
+    
+    <div id="splashScreen">
+        <div class="splash-content">
+            <img src="https://cdn-icons-png.flaticon.com/512/1150/1150612.png" alt="Logo" class="splash-logo">
+            <h1 class="splash-text">ARIYORUM</h1>
+            <div class="loading-bar"></div>
+        </div>
+    </div>
+
+    <header class="app-bar">
+        <div class="header-content">
+            <div class="header-left">
+               <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                <span class="material-icons" style="font-size: 1.8rem; color: #333;">menu</span>
+                </button>
+                <a href="index.html" class="logo">Arıyorum</a>
+                <div id="headerUserProfile" onclick="openProfileModal()" style="display:none;"> 
+                    <img id="headerAvatar" src="" style="width:32px; height:32px; border-radius:50%; object-fit:cover; display:none; border:1px solid #ccc;">
+                    <span id="headerUserName" style="color:#555; font-weight:bold; font-size:0.9rem;"></span>
+                </div>
+            </div>
+
+            <div class="header-search" style="position: relative; display: flex; align-items: center;">
+                <span class="material-icons" style="position: absolute; left: 12px; color: #999; z-index: 2;">search</span>
+                
+                <input type="text" id="searchInput" placeholder="İlanlarda ara..." onkeyup="searchData()" style="padding-left: 40px; padding-right: 75px; width: 100%;">
+                
+                <label for="imgSearchInput" class="icon-btn-search" title="Fotoğrafla Ara" style="right: 40px;">
+                    <span class="material-icons">photo_camera</span>
+                    <input type="file" id="imgSearchInput" accept="image/*" style="display:none;" onchange="handleImageSearch(this)">
+                </label>
+
+                <span class="material-icons icon-btn-search" id="micBtn" onclick="startVoiceSearch()" title="Sesli Ara" style="right: 10px;">mic</span>
+            </div>
+
+            <div class="header-right">
+                <button onclick="toggleAIChat()" class="icon-btn" style="color: #8e44ad;" title="AI Asistan">
+                    <span class="material-icons">auto_awesome</span>
+                </button>
+                <div class="notification-wrapper" onclick="openNotifications()" style="position:relative; cursor:pointer; margin-right:5px;">
+                    <span class="material-icons" style="font-size:1.6rem; color:#555;">notifications</span>
+                    <span id="notificationBadge" style="position:absolute; top:-2px; right:-2px; background:red; color:white; font-size:0.6rem; font-weight:bold; padding:2px 5px; border-radius:50%; display:none;">0</span>
+                </div>
+                <button onclick="toggleTheme()" class="icon-btn">
+                    <span class="material-icons">dark_mode</span>
+                </button>
+                <div id="authButtons">
+                    <button class="desktop-post-btn" onclick="openModal('authModal')" style="background:#333;">Giriş Yap</button>
+                </div>
+                <button class="desktop-post-btn" onclick="openNewRequestModal()">Ücretsiz İlan Ver</button>
+            </div>
+        </div>
+        <div class="ticker-wrap">
+    <div class="ticker-label">CANLI ⚡</div>
+    <div class="ticker-track" id="liveTickerContent">
+        <div class="ticker-item">Piyasa verileri yükleniyor...</div>
+    </div>
+</div>
+    </header>
+
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <input type="text" id="mobileSearchInput" placeholder="Kelime ile ara..." onkeyup="searchData()" style="padding:10px; border:1px solid #ccc; width:100%; border-radius:4px; margin-bottom:15px; box-sizing:border-box; display:none;">
+
+            <div class="mobile-sidebar-actions" style="margin-bottom: 15px; display: none;">
+                <button id="sidebarAuthBtn" onclick="openAuthModal('login')" class="btn-primary" style="margin-bottom: 10px; background:#333;">Giriş Yap</button>
+                <button onclick="openNewRequestModal()" class="btn-primary">➕ Ücretsiz İlan Ver</button>
+            </div>
+
+            <h4>Menü</h4>
+            <div class="category-list">
+                <div onclick="showFavorites()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#d9534f; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">star</span> Favorilerim</div>
+                <div onclick="showMyListings()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#2c6ec9; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">person</span> İlanlarım</div>
+                <div onclick="openMyMessages()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#007bff; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">forum</span> Mesajlarım</div>
+                <div onclick="showMyOffers()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#6f42c1; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">local_offer</span> Tekliflerim</div>
+                <div onclick="toggleAIChat()" class="menu-item" style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:5px 0; color:#8e44ad; font-weight:bold;"><span class="material-icons" style="font-size:1.2rem;">auto_awesome</span> Asistana Sor (AI)</div>
+                <div onclick="openHeatmap()" class="menu-item" style="color:#e11d48; font-weight:bold;">
+    <span class="material-icons" style="color:#e11d48;">map</span> Piyasa Haritası
+</div>
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <h4>Kategoriler</h4>
+                <div onclick="filterCategory('Tümü')" style="cursor:pointer; padding:3px 0;">📂 Tümü</div>
+                <div onclick="filterCategory('Telefon')" style="cursor:pointer; padding:3px 0;">📱 Telefon & Elektronik</div>
+                <div onclick="filterCategory('Vasıta')" style="cursor:pointer; padding:3px 0;">🚗 Vasıta</div>
+                <div onclick="filterCategory('Emlak')" style="cursor:pointer; padding:3px 0;">🏠 Emlak</div>
+                <div onclick="filterCategory('Giyim')" style="cursor:pointer; padding:3px 0;">👕 Giyim & Moda</div>
+            </div>
+            
+            <br>
+            <h4>Filtreler</h4>
+            <div style="font-size:0.9rem; color:#666;">
+                <label>Şehir:</label>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <select id="reqCityFilter" onchange="filterCity(this.value)" style="flex:1; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px; margin-bottom:0;">
+                        <option value="Tümü">Tüm Türkiye</option><option value="İstanbul">İstanbul</option><option value="Ankara">Ankara</option><option value="İzmir">İzmir</option><option value="Bursa">Bursa</option><option value="Antalya">Antalya</option><option value="Adana">Adana</option><option value="Gaziantep">Gaziantep</option><option value="Konya">Konya</option><option value="Nevşehir">Nevşehir</option>
+                    </select>
+                    <button onclick="detectUserLocation()" class="btn-primary" style="width:40px; padding:0; margin-top:5px; height:38px; display:flex; align-items:center; justify-content:center; background:#ff9f43;" title="Konumumu Bul"><span class="material-icons">my_location</span></button>
+                </div>
+                <label style="display:block; margin-top:10px;">Sıralama:</label>
+                <select id="sortSelect" onchange="fetchRequests()" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="newest">🕒 En Yeni</option><option value="price_asc">⬇️ Fiyat (En Düşük)</option><option value="price_desc">⬆️ Fiyat (En Yüksek)</option>
+                </select>
+                <label style="display:block; margin-top:10px;">Fiyat Aralığı (TL):</label>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <input type="number" id="minPrice" placeholder="Min" style="width:50%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.9rem; margin-bottom:0;">
+                    <input type="number" id="maxPrice" placeholder="Max" style="width:50%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.9rem; margin-bottom:0;">
+                </div>
+                <button onclick="fetchRequests()" class="btn-primary" style="width:100%; margin-top:5px; padding:8px; font-size:0.9rem;">Uygula</button>
+            </div>
+        </aside>
+
+        <div class="feed-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+            <main id="feedContainer" class="feed-area" style="width: 100%;"></main>
+            <div id="loadMoreContainer" style="text-align:center; margin: 30px 0; display:none;">
+                <button onclick="loadMore()" class="btn-primary" style="width: auto; padding: 12px 40px; border-radius: 30px; background: white; color: #2563eb; border: 2px solid #2563eb; font-weight: 800; transition: all 0.2s; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.1);">👇 Daha Fazla Göster</button>
+            </div>
+        </div>
+        <aside class="right-sidebar">
+            <div class="right-widget">
+                <h4 style="display:flex; align-items:center; gap:5px;">
+                    <span class="material-icons" style="color:#f59e0b;">local_fire_department</span> 
+                    Günün Fırsatları
+                </h4>
+                <div id="rightSideSuggestions">
+                    <div class="skeleton" style="height:50px; margin-bottom:10px;"></div>
+                    <div class="skeleton" style="height:50px; margin-bottom:10px;"></div>
+                    <div class="skeleton" style="height:50px;"></div>
+                </div>
+            </div>
+
+            <div class="right-widget" style="margin-top:20px; background: linear-gradient(135deg, #2563eb, #1e40af); color:white;">
+                <h4 style="color:white; margin-bottom:10px;">📢 İlanın Var mı?</h4>
+                <p style="font-size:0.85rem; opacity:0.9; margin-bottom:15px;">Hemen ücretsiz ilan ver, binlerce kişiye ulaş.</p>
+                <button onclick="openNewRequestModal()" style="width:100%; padding:8px; border:none; border-radius:6px; background:white; color:#2563eb; font-weight:bold; cursor:pointer;">İlan Ver</button>
+            </div>
+            
+            <div style="margin-top:20px; text-align:center; font-size:0.75rem; color:#999;">
+                &copy; 2025 Arıyorum App<br>
+                <a href="#" style="color:#999; text-decoration:none;">Gizlilik</a> • <a href="#" style="color:#999; text-decoration:none;">Şartlar</a>
+            </div>
+        <div id="toastBox"></div>
+        </aside>
+    </div> 
+    
+
+    <!-- MODALLER (DÜZELTİLDİ) -->
+    
+    <!-- 1. MESAJ LİSTESİ MODALI (DÜZELTİLDİ) -->
+    <div id="messagesListModal" class="modal-overlay">
+        <div class="msg-inbox-card">
+            <div class="msg-header">
+                <h3>💬 Mesajlar</h3>
+                <span onclick="closeModal('messagesListModal')" 
+                      style="cursor:pointer; font-size:1.8rem; color:#94a3b8; line-height:1; transition:color 0.2s;" 
+                      onmouseover="this.style.color='#ef4444'" 
+                      onmouseout="this.style.color='#94a3b8'">&times;</span>
+            </div>
+            
+            <div style="padding: 15px 15px 5px 15px;">
+                <input type="text" placeholder="Sohbetlerde ara..." style="margin:0; background:#f3f4f6; border:none; padding:10px 15px; border-radius:12px; font-size:0.9rem;">
+            </div>
+
+            <div id="inboxContainer" class="msg-list-container">
+                </div>
+        </div>
+    </div>
+
+    <!-- 2. İLAN VERME MODALI -->
+    <div id="buyerModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header"><h3>🔍 İlan Oluştur / Düzenle</h3></div>
+            <div style="background:#f9f9f9; padding:10px; border:1px dashed #ccc; margin-bottom:10px; text-align:center; border-radius:4px;">
+                <label for="reqFile" style="cursor:pointer; display:block;">📸 Örnek Fotoğraf Ekle</label>
+                <input type="file" id="reqFile" accept="image/*" multiple style="display:none;" onchange="showToast('Fotoğraf hazır! 📸')">
+                <div id="reqProgressFill" class="progress-fill"></div>
+            </div>
+            <input type="text" id="reqTitle" placeholder="Başlık">
+            <div style="display:flex; justify-content:flex-end; margin-bottom:5px;">
+    <button id="aiPriceBtn" onclick="predictPrice()" style="background:linear-gradient(135deg, #8e44ad, #3498db); color:white; border:none; padding:5px 12px; border-radius:15px; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+        <span class="material-icons" style="font-size:1rem;">auto_awesome</span> Fiyat Tavsiyesi Al
+    </button>
+</div>
+            <input type="number" id="reqBudget" placeholder="Bütçen (TL)">
+            <select id="reqCity" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"><option value="Tüm Türkiye">Tüm Türkiye</option><option value="Nevşehir">Nevşehir</option><option value="İstanbul">İstanbul</option><option value="Ankara">Ankara</option><option value="İzmir">İzmir</option><option value="Bursa">Bursa</option><option value="Antalya">Antalya</option><option value="Adana">Adana</option><option value="Gaziantep">Gaziantep</option></select>
+            <select id="reqCategory" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"><option value="Diğer">Kategori Seçin...</option><option value="Telefon">Telefon</option><option value="Vasıta">Vasıta</option><option value="Emlak">Emlak</option><option value="Giyim">Giyim</option></select>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:#fff0f0; padding:10px; border-radius:8px; border:1px solid #ffcccc;"><input type="checkbox" id="reqUrgent" style="width:20px; height:20px; margin:0; cursor:pointer;"><label for="reqUrgent" style="color:#d63031; font-weight:bold; cursor:pointer; font-size:0.9rem;">🔥 Bu İlan Çok Acil!</label></div>
+            <button class="btn-primary" onclick="postRequest()">İsteği Yayınla</button>
+            <button onclick="closeModal('buyerModal')" style="margin-top:10px; background:none; border:none; width:100%; cursor:pointer;">Vazgeç</button>
+        </div>
+    </div>
+            3. PROFİL MODALI --
+    <!-- 3. PROFİL MODALI -->
+    <div id="profileModal" class="modal-overlay">
+        <div class="modal-card profile-dashboard-card">
+            
+            <aside class="pro-sidebar">
+                <div class="pro-sidebar-header">
+                    <h3 style="margin:0;">Profilim</h3>
+                    <span onclick="closeModal('profileModal')" class="pro-close-mobile">&times;</span>
+                </div>
+
+                <div class="pro-info-card">
+                    <div class="pro-avatar-container">
+                        <img id="profilePreview" src="https://cdn-icons-png.flaticon.com/512/847/847969.png">
+                        <label for="profileFile" class="edit-avatar-btn"><span class="material-icons">edit</span></label>
+                        <input type="file" id="profileFile" accept="image/*" style="display:none;" onchange="previewProfileImage(this)">
+                    </div>
+                    
+                    <h2 id="profileModalName">Yükleniyor...</h2>
+                    <p id="profileEmailDisplay" class="pro-email">email@adresi.com</p>
+                    
+                    <div class="pro-tags">
+                        <span id="profileStatusBadge" class="pro-tag">Üye</span>
+                        <span id="profileJoinedDate" class="pro-tag-date">Katılım: ...</span>
+                    </div>
+
+                    <div class="pro-quick-stats">
+                        <div>
+                            <strong id="statListingCountSide">0</strong>
+                            <span>İlan</span>
+                        </div>
+                        <div>
+                            <strong id="statFavCountSide">0</strong>
+                            <span>Favori</span>
+                        </div>
+                    </div>
+                </div>
+
+                <nav class="pro-menu">
+                    <button class="pro-menu-item active" onclick="switchMyProfileTab('overview')">
+                        <span class="material-icons">dashboard</span> Özet
+                    </button>
+                    <button class="pro-menu-item" onclick="switchMyProfileTab('listings')">
+                        <span class="material-icons">inventory_2</span> İlanlarım
+                    </button>
+                    <button class="pro-menu-item" onclick="switchMyProfileTab('offers')">
+                        <span class="material-icons">local_offer</span> Tekliflerim
+                    </button>
+                    <button class="pro-menu-item" onclick="switchMyProfileTab('settings')">
+                        <span class="material-icons">settings</span> Ayarlar
+                    </button>
+                    <button class="pro-menu-item logout" onclick="handleLogout()">
+                        <span class="material-icons">logout</span> Çıkış Yap
+                    </button>
+                </nav>
+            </aside>
+
+            <main class="pro-content">
+                <div class="pro-content-header">
+                    <button class="back-to-menu-btn" onclick="toggleProfileSidebar(true)">
+                        <span class="material-icons">arrow_back</span>
+                    </button>
+                    <h2 id="proContentTitle">Genel Bakış</h2>
+                    <span onclick="closeModal('profileModal')" class="pro-close-desktop">&times;</span>
+                </div>
+
+                <div id="myProfileTabBody" class="pro-body-scroll">
+                    <div id="myProfilePane_overview" class="pro-pane active">
+                        <div class="stats-row">
+                            <div class="stat-box green">
+                                <span class="material-icons">check_circle</span>
+                                <div>
+                                    <h3 id="statActiveCount">0</h3>
+                                    <p>Aktif İlan</p>
+                                </div>
+                            </div>
+                            <div class="stat-box red">
+                                <span class="material-icons">do_not_disturb_on</span>
+                                <div>
+                                    <h3 id="statSoldCount">0</h3>
+                                    <p>Satılan</p>
+                                </div>
+                            </div>
+                            <div class="stat-box blue">
+                                <span class="material-icons">chat</span>
+                                <div>
+                                    <h3 id="statOfferCount">0</h3>
+                                    <p>Teklif</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="recent-section">
+                            <h4>Son Hareketler</h4>
+                            <div id="myProfileRecentListings"></div>
+                        </div>
+                    </div>
+
+                    <div id="myProfilePane_listings" class="pro-pane" style="display:none;">
+                        <div id="myProfileListings"></div>
+                    </div>
+
+                    <div id="myProfilePane_offers" class="pro-pane" style="display:none;">
+                        <div class="info-box">
+                            <span class="material-icons">info</span>
+                            <p>Tüm tekliflerini detaylı görmek için aşağıdaki butona tıkla.</p>
+                        </div>
+                        <button class="btn-primary" onclick="showMyOffers(); closeModal('profileModal');">Tam Listeyi Aç</button>
+                    </div>
+
+                    <div id="myProfilePane_settings" class="pro-pane" style="display:none;">
+                        <div class="settings-form">
+                            <label>Adın Soyadın</label>
+                            <input type="text" id="profileName" placeholder="İsim Soyisim">
+                            
+                            <label>Telefon Numaran</label>
+                            <input type="tel" id="profilePhone" placeholder="05XX XXX XX XX">
+                            
+                            <button class="btn-primary" onclick="saveProfile()">Bilgileri Güncelle</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+
+    <!-- 4. DETAY MODALI -->
+    <div id="sellerModal" class="modal-overlay"> 
+        <div id="sellerPanelContent" class="modal-card-large"> 
+            <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #eee; display:flex; justify-content:space-between; align-items:center; background:white;">
+                <h3 style="font-size: 1.1rem; margin:0; display:flex; align-items:center; gap:10px;">📦 İlan Detayı</h3>
+                <button onclick="closeModal('sellerModal')" style="background:none; border:none; cursor:pointer; font-size:1.5rem; color:#666; line-height:1;">&times;</button>
+            </div>
+            <div class="modal-split-body">
+                <div class="detail-left">
+                    <div id="ownerProfilePreview"></div>
+                    <div id="galleryBox" style="min-height: fit-content;"></div>
+                    <div id="targetItemName" style="margin: 15px 0; border-bottom:1px solid #eee; padding-bottom:15px;"></div>
+                    <div id="mapContainer" style="width:100%; height:180px; background:#eee; margin-bottom:15px; border-radius:8px; border:1px solid #ddd; flex-shrink: 0;"></div>
+                    <div style="background:#f9f9f9; border-radius:8px; border:1px solid #eee; padding:0; margin-bottom:15px; max-height: 250px; overflow-y: auto;">
+                        <h5 style="margin:0; color:#555; font-size:0.8rem; position:sticky; top:0; background:#eee; padding:10px; z-index:2; border-bottom:1px solid #ddd; font-weight:700;">📢 Gelen Teklifler</h5>
+                        <div id="offerListContainer" style="padding: 10px;"></div>
+                    </div>
+                    <div id="actionButtons" style="display:flex; gap:10px; margin-bottom:15px;"></div>
+                    <div id="offerInputArea" style="background: #f1f2f6; padding: 15px; border-radius: 12px; border:1px solid #e5e7eb;">
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <input type="text" id="offerName" placeholder="Adın" style="flex:1; padding:10px; border:1px solid #ccc; border-radius:6px; height:40px; margin:0;">
+                            <input type="tel" id="offerPhone" placeholder="Tel (5xx)" style="flex:1; padding:10px; border:1px solid #ccc; border-radius:6px; height:40px; margin:0;">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="offerPrice" placeholder="Teklif (TL)" style="flex:1; padding:10px; border:1px solid #ccc; border-radius:6px; height:40px; margin:0;">
+                            <button class="btn-primary" onclick="submitOffer()" style="width:100px; padding:0; display:flex; align-items:center; justify-content:center; font-weight:bold;">Gönder 🚀</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-right">
+                    <h4 style="margin-top:0; margin-bottom:20px; color:#333; font-size:1rem; border-bottom:2px solid #e5e7eb; padding-bottom:10px; display:flex; align-items:center; gap:5px;"><span class="material-icons" style="color:#f59e0b;">lightbulb</span> Bunlar da İlginizi Çekebilir</h4>
+                    <div id="relatedItemsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. AUTH MODALI -->
+    <div id="authModal" class="modal-overlay">
+        <div class="modal-card" style="text-align:center;">
+            <div class="modal-header"><h3 id="authTitle">Giriş Yap</h3> <span onclick="closeModal('authModal')" style="cursor:pointer; font-size:20px;">&times;</span></div>
+            <p id="authDesc" style="color:#666; font-size:0.9rem; margin-bottom:20px;">Hoş geldin! Devam etmek için giriş yap.</p>
+            <div id="registerInputs" style="display:none;"><input type="text" id="regName" placeholder="Adın Soyadın" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"><input type="tel" id="regPhone" placeholder="Telefon Numaran" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"></div>
+            <input type="email" id="authEmail" placeholder="E-posta Adresin" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;">
+            <input type="password" id="authPass" placeholder="Şifren" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc; border-radius:4px;">
+            <button id="btnLoginBtn" onclick="handleLogin()" class="btn-primary" style="background:#2c6ec9;">Giriş Yap</button>
+            <button id="btnRegisterBtn" onclick="handleRegister()" class="btn-primary" style="background:#28a745; display:none;">Kayıt Ol</button>
+            <div style="margin-top:15px; font-size:0.85rem;"><span id="toggleAuthText" style="color:#666; cursor:pointer; text-decoration:underline;" onclick="toggleAuthMode()">Hesabın yok mu? Kayıt Ol</span></div>
+        </div>
+    </div>
+
+    <!-- 6. AI CHAT -->
+    <div id="aiChatBox" class="ai-chat-box">
+        <div class="ai-chat-header"><div style="display:flex; align-items:center; gap:10px;"><div class="ai-avatar-glow"><span class="material-icons" style="font-size:1.4rem; color:white;">auto_awesome</span></div><div style="display:flex; flex-direction:column;"><span style="font-weight:bold; font-size:0.95rem; line-height:1;">Gemini Asistan</span><span style="font-size:0.7rem; opacity:0.8; font-weight:400;">Yapay Zeka Destekli</span></div></div><span onclick="toggleAIChat()" style="cursor:pointer; font-size:1.5rem; opacity:0.8;">&times;</span></div>
+        <div id="aiChatMessages" class="ai-chat-body"><div class="bubble bubble-ai">Merhaba! Ben Arıyorum Asistanı. 👋<br>Sana nasıl yardımcı olabilirim?</div></div>
+        <div class="ai-chat-footer"><input type="text" id="aiChatInput" placeholder="Bir şeyler sor..." onkeypress="handleAIEnter(event)"><button onclick="sendAIMessage()"><span class="material-icons" style="font-size:1rem;">send</span></button></div>
+    </div>
+
+    <!-- 7. SOSYAL SOHBET -->
+    <div id="socialChatBox" class="social-chat-box" style="display:none;">
+        <div class="social-chat-header"><div style="display:flex; align-items:center; gap:10px;"><div style="position:relative;"><span class="material-icons" style="font-size:1.4rem;">forum</span><span style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#4ade80; border-radius:50%; border:2px solid var(--primary);"></span></div><div style="display:flex; flex-direction:column;"><span id="chatHeaderName" style="font-weight:bold; font-size:0.95rem; line-height:1;">Sohbet</span><span style="font-size:0.7rem; opacity:0.8; font-weight:400;">Çevrimiçi</span></div></div><span onclick="closeChatWindow()" style="cursor:pointer; font-size:1.5rem; opacity:0.8;">&times;</span></div>
+        <div id="socialChatMessages" class="social-chat-body"><small style="display:block; text-align:center; color:#999; margin-top:20px;">Sohbet yükleniyor...</small></div>
+        <div class="social-chat-footer"><input type="text" id="socialChatInput" placeholder="Bir mesaj yaz..." onkeypress="handleEnter(event)"><button onclick="sendSocialMessage()"><span class="material-icons" style="font-size:1rem;">send</span></button></div>
+    </div>
+
+    <div id="lightboxModal" class="modal-overlay" onclick="closeModal('lightboxModal')" style="justify-content: center; align-items: center; background: rgba(0,0,0,0.95); backdrop-filter: blur(5px); z-index: 9999;"><span onclick="closeModal('lightboxModal')" style="position: absolute; top: 20px; right: 20px; color: white; font-size: 3rem; cursor: pointer; z-index: 10001; line-height: 1;">&times;</span><img id="lightboxImage" src="" style="max-width: 95vw; max-height: 90vh; object-fit: contain; box-shadow: 0 0 50px rgba(0,0,0,0.5); border-radius: 4px; transition: transform 0.3s;"></div>
+
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header"><h3>🚨 Neden Bildiriyorsun?</h3><span onclick="closeModal('reportModal')" style="cursor:pointer; font-size:24px;">&times;</span></div>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">Bu ilanı incelememiz için bize sebebini söyle.</p>
+            <div class="report-list">
+                <div class="report-item" onclick="submitReport('Dolandırıcılık')"><span>🚫 Dolandırıcılık</span><span class="material-icons">chevron_right</span></div>
+                <div class="report-item" onclick="submitReport('Diğer')"><span>💬 Diğer</span><span class="material-icons">chevron_right</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="publicProfileModal" class="modal-overlay"><div class="modal-card" style="padding:0; overflow:hidden; display:flex; flex-direction:column; max-height:85vh;"><div class="profile-header-bg"><span onclick="closeModal('publicProfileModal')" class="close-profile-btn">&times;</span><div class="profile-avatar-container"><div class="profile-avatar-large">👤</div></div><h3 id="publicProfileName">Yükleniyor...</h3></div><div id="publicProfileContent" style="padding:10px; overflow-y:auto; flex:1; background:#f9f9f9;"></div></div></div>
+
+    <div id="reviewModal" class="modal-overlay">
+        <div class="modal-card" style="text-align:center;">
+            <div class="modal-header"><h3>⭐ Satıcıyı Puanla</h3><span onclick="closeModal('reviewModal')" style="cursor:pointer; font-size:24px;">&times;</span></div>
+            <div class="stars" style="font-size: 2.5rem; color: #ddd; cursor: pointer; margin-bottom: 20px;">
+                <span onclick="setRating(1)" class="star" data-value="1">★</span><span onclick="setRating(2)" class="star" data-value="2">★</span><span onclick="setRating(3)" class="star" data-value="3">★</span><span onclick="setRating(4)" class="star" data-value="4">★</span><span onclick="setRating(5)" class="star" data-value="5">★</span>
+            </div>
+            <textarea id="reviewComment" placeholder="Yorumunu buraya yaz..." rows="4"></textarea>
+            <button class="btn-primary" onclick="submitReview()">Puanı Gönder</button>
+        </div>
+    </div>
+
+    <!-- ALT NAVİGASYON -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active" onclick="updateNav(this); currentFilterMode='all'; fetchRequests();">
+            <span class="material-icons">home</span>
+            <span class="nav-text">Vitrin</span>
+        </a>
+        
+        <a href="#" class="nav-item" onclick="updateNav(this); openCategoryBottomModal()">
+            <span class="material-icons">grid_view</span>
+            <span class="nav-text">Kategoriler</span>
+        </a>
+
+        <div class="nav-item-add" onclick="openNewRequestModal()">
+            <div class="add-circle"><span class="material-icons" style="font-size: 32px;">add</span></div>
+        </div>
+
+        <a href="#" class="nav-item" onclick="updateNav(this); showFavorites()">
+            <span class="material-icons">favorite</span>
+            <span class="nav-text">Favoriler</span>
+        </a>
+        
+        <a href="#" class="nav-item" onclick="updateNav(this); openMyMessages()">
+            <span class="material-icons">chat</span>
+            <span class="nav-text">Sohbet</span>
+            <span id="notifDot" class="notif-dot"></span>
+        </a>
+    </nav>
+    
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-card" style="text-align:center; max-width: 350px;">
+            <h3>Emin misin?</h3>
+            <p>Bu işlem geri alınamaz.</p>
+            <div style="display:flex; gap:10px;"><button onclick="closeModal('deleteModal')" style="flex:1;">Vazgeç</button><button onclick="confirmDelete()" style="flex:1; background:red; color:white;">Sil</button></div>
+        </div>
+    </div>
+
+   <div id="notificationModal" class="modal-overlay">
+        <div class="notif-modal-card">
+            
+            <div class="notif-header">
+                <h3><span class="material-icons" style="color:#f59e0b;">notifications</span> Bildirimler</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <span class="btn-mark-read" onclick="markAllRead()">Tümü Okundu</span>
+                    <span onclick="closeModal('notificationModal')" style="cursor:pointer; font-size:1.5rem; color:#94a3b8;">&times;</span>
+                </div>
+            </div>
+
+            <div id="notificationList" class="notif-list-area">
+                </div>
+            
+        </div>
+    </div>
+
+    <div id="adminModal" class="admin-overlay" style="display: none;">
+        <div class="admin-shell">
+            <aside class="admin-sidebar">
+                <div class="admin-brand">
+                    <div class="admin-logo-box">👑</div>
+                    <span style="font-weight:800; font-size:1.1rem; letter-spacing:0.5px; color:white;">YÖNETİM</span>
+                </div>
+                
+                <nav class="admin-nav">
+                    <button class="active" id="tab-dashboard" onclick="switchAdminTab('dashboard')">
+                        <span class="material-icons">dashboard</span>
+                        <span>Genel Bakış</span>
+                    </button>
+                    <button id="tab-users" onclick="switchAdminTab('users')">
+                        <span class="material-icons">people</span>
+                        <span>Kullanıcılar</span>
+                    </button>
+                    <button id="tab-listings" onclick="switchAdminTab('listings')">
+                        <span class="material-icons">inventory_2</span>
+                        <span>İlanlar</span>
+                    </button>
+                    <button id="tab-reports" onclick="switchAdminTab('reports')">
+                        <span class="material-icons">report_problem</span>
+                        <span>Şikayetler</span>
+                    </button>
+                    <button id="tab-messages" onclick="switchAdminTab('messages')">
+                        <span class="material-icons">chat</span>
+                        <span>Mesajlar</span>
+                    </button>
+                    
+                    <div style="flex:1;"></div>
+                    
+                    <button onclick="closeModal('adminModal')" style="color:#ef4444; margin-top:auto;">
+                        <span class="material-icons">logout</span>
+                        <span>Paneli Kapat</span>
+                    </button>
+                </nav>
+            </aside>
+
+            <main class="admin-content">
+                <header class="admin-header">
+                    <h2 class="admin-page-title" id="adminPageTitle">Genel Bakış</h2>
+                    <div style="display:flex; gap:10px;">
+                        <button class="action-btn" onclick="loadAdminData(true)" title="Yenile">
+                            <span class="material-icons" style="font-size:1.2rem; vertical-align:middle;">refresh</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div id="adminMainView" class="admin-main-view">
+                    <div style="display:flex; justify-content:center; align-items:center; height:100%; color:#94a3b8;">
+                        Yükleniyor...
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <div id="categoryBottomModal" class="modal-overlay" style="align-items: flex-end;">
+        <div class="modal-card" style="width:100%; border-radius: 20px 20px 0 0; margin:0; animation: slideUp 0.3s ease-out;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">Kategori Seç</h3>
+                <span onclick="closeModal('categoryBottomModal')" style="font-size:24px; cursor:pointer;">&times;</span>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; text-align:center;">
+                <div onclick="selectCategoryMobile('Tümü')" style="cursor:pointer;"><div style="background:#f3f4f6; padding:15px; border-radius:15px; font-size:1.5rem; margin-bottom:5px;">📂</div><span style="font-size:0.8rem;">Tümü</span></div>
+                <div onclick="selectCategoryMobile('Telefon')" style="cursor:pointer;"><div style="background:#e0e7ff; padding:15px; border-radius:15px; font-size:1.5rem; margin-bottom:5px;">📱</div><span style="font-size:0.8rem;">Telefon</span></div>
+                <div onclick="selectCategoryMobile('Vasıta')" style="cursor:pointer;"><div style="background:#fef3c7; padding:15px; border-radius:15px; font-size:1.5rem; margin-bottom:5px;">🚗</div><span style="font-size:0.8rem;">Vasıta</span></div>
+                <div onclick="selectCategoryMobile('Emlak')" style="cursor:pointer;"><div style="background:#dcfce7; padding:15px; border-radius:15px; font-size:1.5rem; margin-bottom:5px;">🏠</div><span style="font-size:0.8rem;">Emlak</span></div>
+                <div onclick="selectCategoryMobile('Giyim')" style="cursor:pointer;"><div style="background:#fae8ff; padding:15px; border-radius:15px; font-size:1.5rem; margin-bottom:5px;">👕</div><span style="font-size:0.8rem;">Giyim</span></div>
+                <div onclick="selectCategoryMobile('Diğer')" style="cursor:pointer;"><div style="background:#f3f4f6; padding:15px; border-radius:15px; font-size:1.5rem; margin-bottom:5px;">⚡</div><span style="font-size:0.8rem;">Diğer</span></div>
+            </div>
+        </div>
+    </div>
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="heatmapModal" class="modal-overlay">
+    <div class="modal-card" style="width:95%; height:90vh; max-width:1200px; padding:0; display:flex; flex-direction:column;">
+        <div class="modal-header" style="padding:15px; border-bottom:1px solid #eee;">
+            <h3>🔥 Türkiye İlan Yoğunluk Haritası</h3>
+            <span onclick="document.getElementById('heatmapModal').style.display='none'" style="cursor:pointer; font-size:24px;">&times;</span>
+        </div>
+        <div id="fullScreenMap" style="flex:1; background:#eee;"></div>
+    </div>
+</div>
+    <script src="./app.js" defer></script>
+</body>
+</html>
