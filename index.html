@@ -23,7 +23,7 @@
    
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 </head>
-</head>
+
 <body>
     <div id="pullToRefresh" class="ptr-box">
         <div class="ptr-icon"><span class="material-icons">refresh</span></div>
@@ -75,19 +75,18 @@
                     <span class="material-icons">dark_mode</span>
                 </button>
                 <div id="authButtons">
-                    <button class="desktop-post-btn" onclick="openModal('authModal')" style="background:#333;">Giriş Yap</button>
+                <button class="desktop-post-btn" onclick="openModal('authModal')" style="background:#333;">Giriş Yap</button>
                 </div>
                 <button class="desktop-post-btn" onclick="openNewRequestModal()">Ücretsiz İlan Ver</button>
             </div>
         </div>
-        <div class="ticker-wrap">
+    </header>
+     <div class="ticker-wrap">
     <div class="ticker-label">CANLI </div>
     <div class="ticker-track" id="liveTickerContent">
         <div class="ticker-item">Piyasa verileri yükleniyor...</div>
     </div>
-</div>
-    </header>
-
+    </div>
 
     <div class="main-layout">
         <aside class="sidebar">
@@ -160,6 +159,9 @@
                 </div>
                 <button onclick="fetchRequests()" class="btn-primary" style="width:100%; margin-top:5px; padding:8px; font-size:0.9rem;">Uygula</button>
             </div>
+            
+            <!-- Mobil Menü Giriş/Çıkış Butonu (Eksikti) -->
+            <button id="sidebarAuthBtn" class="btn-primary" onclick="openModal('authModal')" style="width:100%; margin-top:20px; background:#333;">Giriş Yap</button>
         </aside>
 
         <div class="feed-wrapper" style="flex: 1; display: flex; flex-direction: column;">
@@ -172,7 +174,7 @@
             <div class="right-widget">
                 <h4 style="display:flex; align-items:center; gap:5px;">
                     <span class="material-icons" style="color:#f59e0b;">local_fire_department</span> 
-                    Günün Fırsatları
+                    Günün sikişi
                 </h4>
                 <div id="rightSideSuggestions">
                     <div class="skeleton" style="height:50px; margin-bottom:10px;"></div>
@@ -191,12 +193,10 @@
                 &copy; 2025 Arıyorum App<br>
                 <a href="#" style="color:#999; text-decoration:none;">Gizlilik</a> • <a href="#" style="color:#999; text-decoration:none;">Şartlar</a>
             </div>
-        <div id="toastBox"></div>
         </aside>
     </div> 
     
 
-    <!-- MODALLER (DÜZELTİLDİ) -->
     
     <!-- 1. MESAJ LİSTESİ MODALI (DÜZELTİLDİ) -->
     <div id="messagesListModal" class="modal-overlay">
@@ -609,6 +609,9 @@
         <div id="fullScreenMap" style="flex:1; background:#eee;"></div>
     </div>
 </div>
+    <!-- Toast Bildirim Kutusu (Mobilde görünmesi için buraya taşındı) -->
+    <div id="toastBox"></div>
+
     <script src="./app.js" defer></script>
 </body>
 </html>

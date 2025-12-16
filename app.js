@@ -3449,6 +3449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 // ==========================================
 // 📸 İLAN RESMİ ÖNİZLEME (PREVIEW)
 // ==========================================
@@ -3476,7 +3477,8 @@ function previewRequestImage(input) {
         };
 
         reader.readAsDataURL(input.files[0]);
-    } else {
+    }
+     else {
         // İptal ederse eski haline döndür
         previewBox.style.display = 'none';
         previewBox.src = "";
